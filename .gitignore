@@ -1,0 +1,7 @@
+/apache-maven-3.10.2/
+/incident-reporting-system.zip
+**/target/
+**/.env
+**/.idea/
+**/.vscode/
+*.log
