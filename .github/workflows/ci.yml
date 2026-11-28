@@ -35,3 +35,18 @@ jobs:
 
       - name: Build and test application
         run: ./mvnw -B clean verify
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: incident-reporting-jar
+          path: incident-reporting-system/target/*.jar
+          retention-days: 7
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-test-reports
+          path: incident-reporting-system/target/surefire-reports/
+          retention-days: 7
