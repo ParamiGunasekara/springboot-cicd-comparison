@@ -37,7 +37,7 @@ jobs:
         run: ./mvnw -B clean verify
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: incident-reporting-jar
           path: incident-reporting-system/target/*.jar
@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: maven-test-reports
           path: incident-reporting-system/target/surefire-reports/
