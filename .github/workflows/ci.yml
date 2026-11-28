@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build-and-test:
@@ -58,3 +59,58 @@ jobs:
         run: |
           docker image inspect incident-reporting-system:ci
           docker images incident-reporting-system
+      - name: Run container
+        run: |
+          docker run -d --name incident-ci \
+            -p 127.0.0.1:8080:8080 \
+            incident-reporting-system:ci
+
+      - name: Verify application health
+        run: |
+          curl --fail --silent --show-error \
+            --retry 20 --retry-delay 3 \
+            --retry-connrefused \
+            http://localhost:8080/actuator/health \
+            | tee health.json
+
+          jq -e '.status == "UP"' health.json
+
+      - name: Test Incident API
+        run: |
+          curl --fail --silent --show-error \
+            -X POST http://localhost:8080/api/incidents \
+            -H "Content-Type: application/json" \
+            -d '{"title":"CI Smoke Test","description":"Automated API verification","severity":"HIGH"}' \
+            | tee incident.json
+
+          jq -e '.id != null and .status == "OPEN" and .severity == "HIGH"' incident.json
+
+          ID=$(jq -r '.id' incident.json)
+
+          curl --fail --silent --show-error \
+            "http://localhost:8080/api/incidents/$ID" \
+            | jq -e '.title == "CI Smoke Test"'
+
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs incident-ci || true
+          docker rm -f incident-ci || true
+
+      - name: Publish image to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/incident-reporting-system"
+
+          echo "$GHCR_TOKEN" | docker login ghcr.io \
+            -u "$GITHUB_ACTOR" --password-stdin
+
+          docker tag incident-reporting-system:ci "$IMAGE:latest"
+          docker tag incident-reporting-system:ci "$IMAGE:$GITHUB_SHA"
+
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$GITHUB_SHA"
+
+          docker logout ghcr.io
