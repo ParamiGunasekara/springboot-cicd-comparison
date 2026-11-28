@@ -50,3 +50,11 @@ jobs:
           name: maven-test-reports
           path: incident-reporting-system/target/surefire-reports/
           retention-days: 7
+      - name: Build Docker image
+        run: |
+          docker build -f Dockerfile.ci -t incident-reporting-system:ci .
+
+      - name: Verify Docker image
+        run: |
+          docker image inspect incident-reporting-system:ci
+          docker images incident-reporting-system
